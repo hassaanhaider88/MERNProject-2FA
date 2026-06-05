@@ -4,6 +4,7 @@ import cors from 'cors';
 import session from 'express-session';
 import passport from 'passport';
 import connectDB from './config/dbConnection.js';
+import authRoutes from "./routes/authRoutes.js"
 
 dotenv.config();
 
@@ -16,7 +17,8 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 const corsOptions = {
     origin: ["http://localhost:3001"],
-    credential: true
+    // origin: "*",
+    credentials: true
 }
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' })); // Increase the limit to 10mb
@@ -30,13 +32,12 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-
-
-
-
+// Routes
 app.get('/', (req, res) => {
     res.json({ success: true, message: '2 FA Auth Server is running' });
 });
+
+app.use("/api/auth", authRoutes)
 
 
 app.listen(PORT, () => {
