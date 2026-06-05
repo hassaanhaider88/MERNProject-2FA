@@ -5,7 +5,7 @@ import session from 'express-session';
 import passport from 'passport';
 import connectDB from './config/dbConnection.js';
 import authRoutes from "./routes/authRoutes.js"
-
+import "./config/passportConfig.js"
 dotenv.config();
 
 // Connect to MongoDB
