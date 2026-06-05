@@ -6,7 +6,9 @@ dotenv.config();
 const app = express();
 
 
-
+// Middleware
+app.use(express.json({limit : '10mb'})); // Increase the limit to 10mb
+app.use(express.urlencoded({ extended: true }));
 const PORT = process.env.PORT || 5000;
 
 app.get('/', (req, res) => {
