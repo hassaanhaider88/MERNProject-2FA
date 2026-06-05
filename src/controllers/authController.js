@@ -1,6 +1,9 @@
 import bcrypt from 'bcryptjs'
 import User from '../models/user.model.js';
 import passport from 'passport';
+import speakeasy from 'speakeasy';
+import qrcode from "qrcode"
+import jwt from 'jsonwebtoken'
 
 export const register = async (req, res) => {
     console.log(req.body)
@@ -97,6 +100,76 @@ export const authStatus = async (req, res) => {
         })
     }
 }
-export const setup2FA = async () => { }
-export const verify2FA = async () => { }
-export const reset2FA = async () => { }
+export const setup2FA = async (req, res) => {
+    try {
+        const user = req.user;
+        const secret = speakeasy.generateSecret();
+        user.towFactorSecret = secret.base32;
+        user.is2FAEnabled = true;
+        await user.save();
+        const url = speakeasy.otpauthURL({
+            secret: secret.base32,
+            label: `${req.user.username}`,
+            issuer: "Hassaam.come",
+            encoding: "base32"
+        })
+        const qrImgUrl = await qrcode.toDataURL(url);
+        res.json({ success: true, message: "Setup done", qrcode: qrImgUrl })
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        })
+    }
+}
+
+export const verify2FA = async (req, res) => {
+    try {
+        const { token } = req.body;
+        const user = req.user;
+        const verified = speakeasy.totp.verify({
+            secret: user.towFactorSecret,
+            encoding: "base32",
+            token,
+        });
+        if (verified) {
+            const jwtToken = jwt.sign({ username: user.username },
+                process.env.JWT_SECRET,
+                { expiresIn: "1d" })
+
+            res.status(200).json({
+                success: true,
+                message: "2 FA Successfully Added",
+                token: jwtToken
+            })
+        }
+        else {
+            res.status(401).json({
+                success: false,
+                message: "Providing Invalid OTP"
+            })
+        }
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        })
+    }
+}
+export const reset2FA = async (req, res) => {
+    try {
+        const user = req.user;
+        user.towFactorSecret = "",
+            user.is2FAEnabled = false;
+        await user.save();
+        res.status(200).json({
+            success: true,
+            message: "disabled 2 FA done"
+        })
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        })
+    }
+}
